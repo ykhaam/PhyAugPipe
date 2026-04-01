@@ -1,0 +1,12 @@
+sample_id,split,caption,desirability,shot_count,duration_sec,video_path
+s1,train,"a person kicks a ball",1,1,5,vid1.mp4
+s2,train,"a cat sleeping",1,1,10,vid2.mp4
+s3,val,"runner jumps over hurdle",1,1,7,vid3.mp4
+s4,test,"car collision at intersection",1,1,4,vid4.mp4
+s5,train,"person throws frisbee",1,2,6,vid5.mp4
+s6,val,"athlete spins and lands",1,1,8,vid6.mp4
+s7,test,"object falls from shelf",1,1,3,vid7.mp4
+s8,train,"camera pans static room",1,1,20,vid8.mp4
+s9,val,"soccer player runs fast",1,1,9,vid9.mp4
+s10,test,"basketball bounce on court",1,1,6,vid10.mp4
+s11,train,"a painting on wall",0,1,10,vid11.mp4

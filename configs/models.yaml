@@ -1,0 +1,19 @@
+vlm:
+  default_model: Qwen/Qwen2.5-VL-7B-Instruct
+  tokenizer_trust_remote_code: true
+  torch_dtype: bfloat16
+  max_new_tokens: 512
+  temperature: 0.1
+  top_p: 0.9
+  use_fast: true
+
+runtime:
+  device: auto
+  batch_size: 1
+  num_workers: 2
+
+multi_gpu:
+  enabled: true
+  num_shards: auto
+  shard_strategy: hash_sample_id
+  shard_merge_order: sample_id

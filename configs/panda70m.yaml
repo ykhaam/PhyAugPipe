@@ -1,0 +1,18 @@
+panda70m:
+  expected_columns:
+    - sample_id
+    - split
+    - caption
+    - desirability
+    - shot_count
+    - duration_sec
+    - video_path
+  split_values:
+    - train
+    - val
+    - test
+  nullable_columns:
+    - desirability
+    - shot_count
+    - duration_sec
+    - video_path
