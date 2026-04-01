@@ -1,0 +1,21 @@
+weights:
+  entity_interaction_richness: 0.35
+  force_outcome_visibility: 0.30
+  causal_clarity: 0.35
+
+penalties:
+  heavy_camera_motion: 0.15
+  stylized_non_natural_visuals: 0.20
+  static_aftermath_weak_dynamic_event: 0.20
+
+selection:
+  mode: threshold
+  threshold: 0.55
+  top_n: 1000
+  balanced_export:
+    enabled: false
+    key: physics_label
+    per_category_limit: 200
+
+score_binning:
+  bins: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
