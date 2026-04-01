@@ -1,0 +1,40 @@
+metadata:
+  input_csv: data/panda70m_metadata.csv
+  id_field: sample_id
+  split_field: split
+  caption_field: caption
+  video_ref_field: video_path
+  desirability_field: desirability
+  shot_count_field: shot_count
+  duration_field: duration_sec
+
+prefilter:
+  splits: [train, val]
+  desirable_only: true
+  desirable_values: [desirable, 1, true, yes]
+  single_shot_only: true
+  single_shot_values: [1, single]
+  min_duration_sec: 1.0
+  max_duration_sec: 20.0
+  sports_dynamics_keywords:
+    - hit
+    - throw
+    - jump
+    - fall
+    - collision
+    - bounce
+    - run
+    - kick
+    - slide
+  keyword_mode: any
+
+videos:
+  local_video_roots:
+    - data/local_videos
+  allowed_exts: [.mp4, .mov, .mkv, .webm]
+
+frames:
+  sampling_strategy: uniform
+  num_frames: 8
+  middle_frame_only: false
+  target_short_side: 512

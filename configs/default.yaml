@@ -1,0 +1,31 @@
+run:
+  project_root: .
+  artifacts_root: artifacts
+  log_dir: artifacts/logs
+  overwrite: false
+  smoke_test: false
+  smoke_test_limit: 10
+
+pipeline:
+  metadata_only_mode: true
+  stages:
+    - prefilter
+    - extract_frames
+    - element_parsing
+    - vision_checking
+    - physics_reasoning
+    - scoring
+    - prompt_extending
+    - export
+
+io:
+  metadata_records_dir: artifacts/metadata_records
+  frame_records_dir: artifacts/frame_records
+  parse_records_dir: artifacts/parse_records
+  prompt_records_dir: artifacts/prompt_records
+  final_exports_dir: artifacts/final_exports
+
+execution:
+  num_shards: 1
+  shard_id: 0
+  seed: 42

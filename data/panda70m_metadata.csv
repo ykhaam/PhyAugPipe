@@ -1,0 +1,13 @@
+sample_id,split,caption,desirability,shot_count,duration_sec,video_path
+s1,train,A soccer player kicks the ball and it bounces into the goal,desirable,1,6.2,s1.mp4
+s2,train,A person runs and jumps over a hurdle on a track,desirable,1,5.0,s2.mp4
+s3,val,A cartoon dragon flies through a fantasy sky,undesirable,1,8.0,s3.mp4
+s4,train,A skateboarder falls after collision with a curb,desirable,1,7.1,s4.mp4
+s5,val,Two people stand still and talk in a room,desirable,1,12.0,s5.mp4
+s6,train,A tennis player serves and the ball hits the line,desirable,1,4.5,s6.mp4
+s7,train,Camera pans fast across a city street at night,desirable,1,9.0,s7.mp4
+s8,val,A runner trips and falls on wet ground,desirable,1,3.9,s8.mp4
+s9,train,A CGI render of abstract particles colliding,desirable,1,10.0,s9.mp4
+s10,val,A boxer throws a punch and opponent reels back,desirable,1,5.6,s10.mp4
+s11,train,A chef chops vegetables on a cutting board,desirable,1,6.8,s11.mp4
+s12,val,A kid throws a ball and it breaks a bottle,desirable,1,4.1,s12.mp4
