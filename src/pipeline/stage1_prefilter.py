@@ -25,6 +25,9 @@ def run(cfg: dict, out_root: Path, logger) -> pd.DataFrame:
         sports_dynamics_only=s["sports_dynamics_only"],
         duration_min_sec=s["duration_min_sec"],
         duration_max_sec=s["duration_max_sec"],
+        random_shuffle=s.get("random_shuffle", False),
+        random_seed=int(s.get("random_seed", 42)),
+        max_samples=s.get("max_samples"),
     )
     logger.info("shortlisted entries=%s", len(short))
 

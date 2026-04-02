@@ -1,24 +1,60 @@
-ELEMENT_PARSE_PROMPT = """Parse visible physical elements from caption and frames.
-Return JSON keys: entities, materials, actions, forces, outcomes.
-Caption: {caption}
+ELEMENT_PARSE_PROMPT = """You are following Algorithm 1 (Step 1: Element Parsing).
+Input original prompt p and video frames V.
+Extract entities, actions, forces, and outcomes from (p, V).
+Ensure all agents are included and avoid unsupported/speculative items.
+
+Return strict JSON:
+{{
+  "original": "{caption}",
+  "parse": {{
+    "entities": [],
+    "materials": [],
+    "actions": [],
+    "forces": [],
+    "outcomes": []
+  }}
+}}
+
+Original prompt p: {caption}
+Frame hints V: {frame_hints}
 """
 
-VISION_CHECK_PROMPT = """Given the previous parse and frames, remove hallucinations and add clearly visible missing interactions.
-Return JSON with same keys.
+VISION_CHECK_PROMPT = """You are following Algorithm 1 (Step 2: Vision Checking).
+Compare parse with video frames and original prompt.
+Remove hallucinated elements and add missing visible entities/interactions.
+
+Return strict JSON:
+{{"parse": {{"entities": [], "materials": [], "actions": [], "forces": [], "outcomes": []}}}}
+
+Original prompt p: {caption}
 Previous parse: {parse_json}
-Caption: {caption}
+Frame hints V: {frame_hints}
 """
 
-PHYSICS_REASON_PROMPT = """Write concise causal physical reasoning grounded in visible events only.
-Parse: {parse_json}
-Caption: {caption}
-"""
+PHYSICS_REASON_PROMPT = """You are following Algorithm 1 (Step 3: Physics Reasoning).
+Write concise causal explanation of how parsed entities interact through physical forces and produce outcomes.
 
-PROMPT_EXTEND_PROMPT = """Generate two prompts:
-1) cleaned_prompt: concise and generation-friendly.
-2) extended_prompt: include causal physical details grounded in visible content.
-Return JSON with cleaned_prompt, extended_prompt, notes.
-Caption: {caption}
+Return strict JSON:
+{{"reason": "..."}}
+
+Original prompt p: {caption}
 Checked parse: {parse_json}
-Reasoning: {reasoning}
+Frame hints V: {frame_hints}
+"""
+
+PROMPT_EXTEND_PROMPT = """You are following Algorithm 1 (Step 5: Prompt Extending).
+Extend original prompt using causal details from reason.
+Do not add new entities/forces/sensory descriptions.
+Keep extension <= 100 words.
+
+Return strict JSON:
+{{
+  "cleaned_prompt": "...",
+  "extended": "...",
+  "notes": "..."
+}}
+
+Original prompt p: {caption}
+Checked parse: {parse_json}
+Reason: {reasoning}
 """

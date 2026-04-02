@@ -18,6 +18,9 @@ class ShortlistBuilder:
         sports_dynamics_only: bool,
         duration_min_sec: float,
         duration_max_sec: float,
+        random_shuffle: bool = False,
+        random_seed: int = 42,
+        max_samples: int | None = None,
     ) -> pd.DataFrame:
         out = df.copy()
         if desirable_only and "desirability" in out.columns:
@@ -31,4 +34,9 @@ class ShortlistBuilder:
             text = out["caption"].fillna("").str.lower()
             mask = text.str.contains(self._keyword_pattern)
             out = out[mask]
+
+        if random_shuffle:
+            out = out.sample(frac=1.0, random_state=random_seed).reset_index(drop=True)
+        if max_samples is not None and max_samples > 0:
+            out = out.head(max_samples).copy()
         return out

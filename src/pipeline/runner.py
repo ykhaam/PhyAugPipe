@@ -28,10 +28,10 @@ def run_pipeline(config_path: str, models_path: str, scoring_path: str) -> None:
     rows = stage1_prefilter.run(cfg, out_root, logger)
     rows = stage2_extract_frames.run(cfg, out_root, rows, logger)
 
-    vlm = QwenVLRunner(models["vlm"]["default_model"], models["runtime"]["device"])
+    vlm = QwenVLRunner(models)
     stage3_element_parsing.run(cfg, out_root, rows, vlm, logger)
-    stage4_vision_checking.run(cfg, out_root, vlm, logger)
-    stage5_physics_reasoning.run(cfg, out_root, vlm, logger)
+    stage4_vision_checking.run(cfg, out_root, rows, vlm, logger)
+    stage5_physics_reasoning.run(cfg, out_root, rows, vlm, logger)
     stage6_scoring.run(cfg, scoring_cfg, out_root, logger)
     stage7_prompt_extending.run(cfg, out_root, rows, vlm, logger)
     stage8_export.run(cfg, scoring_cfg, out_root, rows, logger)

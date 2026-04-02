@@ -26,7 +26,7 @@ def run(cfg: dict, out_root, rows_df, vlm_runner, logger) -> None:
             "sample_id": sid,
             "original_caption": caption,
             "cleaned_prompt": obj.get("cleaned_prompt", caption),
-            "extended_prompt": obj.get("extended_prompt", caption),
+            "extended_prompt": obj.get("extended", obj.get("extended_prompt", caption)),
             "revision_notes": obj.get("notes", ""),
         }, overwrite=True)
         processed += 1

@@ -6,57 +6,93 @@ from typing import Any
 
 
 class QwenVLRunner:
-    """Lightweight runner abstraction.
+    """Runner for either real Transformers text inference or deterministic fallback."""
 
-    Default implementation is a safe deterministic stub for metadata-only and smoke testing.
-    Replace `infer_json` with actual transformers inference for production.
-    """
-
-    def __init__(self, model_name: str, device: str = "auto"):
-        self.model_name = model_name
-        self.device = device
+    def __init__(self, models_cfg: dict[str, Any]):
+        self.models_cfg = models_cfg
+        self.vlm_cfg = models_cfg.get("vlm", {})
+        self.runtime_cfg = models_cfg.get("runtime", {})
+        self.model_name = self.vlm_cfg.get("default_model", "Qwen/Qwen2.5-3B-Instruct")
+        self.device = self.runtime_cfg.get("device", "auto")
+        self.backend = self.vlm_cfg.get("backend", "stub")
+        self._pipe = None
 
     def infer_json(self, prompt: str, image_paths: list[str]) -> dict[str, Any]:
-        # Deterministic fallback behavior for reproducible dry runs.
-        # This path is intentionally heuristic-only and should be replaced by real model inference for production.
+        if self.backend == "transformers_text":
+            generated = self._infer_text(prompt)
+            parsed = self.parse_json_text(generated)
+            if parsed:
+                return parsed
+        return self._infer_stub(prompt, image_paths)
+
+    def _infer_text(self, prompt: str) -> str:
+        if self._pipe is None:
+            from transformers import pipeline
+
+            self._pipe = pipeline(
+                "text-generation",
+                model=self.model_name,
+                device_map=self.device,
+                trust_remote_code=bool(self.vlm_cfg.get("tokenizer_trust_remote_code", True)),
+            )
+
+        out = self._pipe(
+            prompt,
+            max_new_tokens=int(self.vlm_cfg.get("max_new_tokens", 512)),
+            do_sample=False if float(self.vlm_cfg.get("temperature", 0.0)) <= 0 else True,
+            temperature=float(self.vlm_cfg.get("temperature", 0.0)),
+            top_p=float(self.vlm_cfg.get("top_p", 0.9)),
+            return_full_text=False,
+        )
+        return out[0]["generated_text"] if out else "{}"
+
+    def _infer_stub(self, prompt: str, image_paths: list[str]) -> dict[str, Any]:
         lower = prompt.lower()
 
         if "previous parse:" in lower:
             prev = self._extract_json_after_label(prompt, "Previous parse:")
             if isinstance(prev, dict):
+                parse = prev.get("parse", prev)
                 return {
-                    "entities": prev.get("entities", []),
-                    "materials": prev.get("materials", []),
-                    "actions": prev.get("actions", []),
-                    "forces": prev.get("forces", []),
-                    "outcomes": prev.get("outcomes", []),
+                    "parse": {
+                        "entities": parse.get("entities", []),
+                        "materials": parse.get("materials", []),
+                        "actions": parse.get("actions", []),
+                        "forces": parse.get("forces", []),
+                        "outcomes": parse.get("outcomes", []),
+                    }
                 }
 
-        if "return json keys: entities, materials, actions, forces, outcomes." in lower:
-            caption = self._extract_line(prompt, "Caption:")
-            return self._heuristic_parse(caption)
+        if "step 1: element parsing" in lower:
+            caption = self._extract_line(prompt, "Original prompt p:")
+            return {"original": caption, "parse": self._heuristic_parse(caption)}
 
-        if "write concise causal physical reasoning" in lower:
-            parse_obj = self._extract_json_after_label(prompt, "Parse:")
-            entities = parse_obj.get("entities", []) if isinstance(parse_obj, dict) else []
-            actions = parse_obj.get("actions", []) if isinstance(parse_obj, dict) else []
-            forces = parse_obj.get("forces", []) if isinstance(parse_obj, dict) else []
-            outcomes = parse_obj.get("outcomes", []) if isinstance(parse_obj, dict) else []
+        if "step 3: physics reasoning" in lower:
+            parse_obj = self._extract_json_after_label(prompt, "Checked parse:")
+            parse = parse_obj.get("parse", parse_obj) if isinstance(parse_obj, dict) else {}
+            actions = parse.get("actions", [])
+            forces = parse.get("forces", [])
+            outcomes = parse.get("outcomes", [])
             return {
-                "text": (
-                    f"Visible interaction: {', '.join(actions[:2]) or 'motion'}; "
-                    f"forces: {', '.join(forces[:2]) or 'gravity/contact'}; "
-                    f"outcome: {', '.join(outcomes[:2]) or 'state change'}"
+                "reason": (
+                    f"Actions {', '.join(actions[:2]) or 'motion'} generate "
+                    f"{', '.join(forces[:2]) or 'gravity/contact force'}, leading to "
+                    f"{', '.join(outcomes[:2]) or 'observable state change'}."
                 )
             }
 
-        if "cleaned_prompt" in lower:
+        if "step 5: prompt extending" in lower:
+            caption = self._extract_line(prompt, "Original prompt p:")
+            reason = self._extract_line(prompt, "Reason:")
+            extended = f"{caption} {reason}".strip()
+            extended = " ".join(extended.split()[:100])
             return {
-                "cleaned_prompt": "A real-world dynamic scene with clear physical interaction.",
-                "extended_prompt": "A person causes an object to move through visible contact, followed by an observable outcome.",
-                "notes": "No hidden causes added.",
+                "cleaned_prompt": caption,
+                "extended": extended,
+                "notes": "Extended using causal details only.",
             }
-        return {"text": "Physics-consistent visible cause-effect sequence."}
+
+        return {"text": "Visible cause-effect relation."}
 
     @staticmethod
     def _extract_line(prompt: str, label: str) -> str:
@@ -85,46 +121,43 @@ class QwenVLRunner:
     @staticmethod
     def _heuristic_parse(caption: str) -> dict[str, Any]:
         c = caption.lower()
-
-        entities = []
-        if re.search(r"\b(person|man|woman|player|athlete|boy|girl)\b", c):
+        entities: list[str] = []
+        if re.search(r"\b(player|athlete|person|man|woman|runner)\b", c):
             entities.append("person")
-        if re.search(r"\b(ball|frisbee|bat|car|bike|object|box|hurdle|shelf)\b", c):
+        if re.search(r"\b(ball|frisbee|car|bike|hurdle|bat|object)\b", c):
             entities.append("object")
-        if re.search(r"\b(dog|cat|horse|bird)\b", c):
-            entities.append("animal")
         if not entities:
             entities = ["object"]
 
         actions: list[str] = []
-        if re.search(r"\bkick(?:s|ed|ing)?\b", c):
-            actions.append("kick")
-        if re.search(r"\bthrow(?:s|n|ing)?\b", c):
-            actions.append("throw")
-        if re.search(r"\bjump(?:s|ed|ing)?\b", c):
-            actions.append("jump")
-        if re.search(r"\brun(?:s|ning)?\b", c):
-            actions.append("run")
-        if re.search(r"\bbounce(?:s|d|ing)?\b", c):
-            actions.append("bounce")
-        if re.search(r"\bcollid(?:e|es|ed|ing)?\b|\bcollision\b|\bcrash(?:es|ed|ing)?\b", c):
-            actions.append("collision")
-        if re.search(r"\bfall(?:s|ing|en)?\b|\bdrop(?:s|ped|ping)?\b", c):
-            actions.append("fall")
+        patterns = {
+            "kick": r"\bkick(?:s|ed|ing)?\b",
+            "throw": r"\bthrow(?:s|n|ing)?\b",
+            "jump": r"\bjump(?:s|ed|ing)?\b",
+            "run": r"\brun(?:s|ning)?\b",
+            "bounce": r"\bbounce(?:s|d|ing)?\b",
+            "collision": r"\bcollision\b|\bcollid(?:e|es|ed|ing)?\b|\bcrash(?:es|ed|ing)?\b",
+            "fall": r"\bfall(?:s|ing|en)?\b|\bdrop(?:s|ped|ping)?\b",
+            "spin": r"\bspin(?:s|ning)?\b",
+            "hit": r"\bhit(?:s|ting)?\b",
+        }
+        for action, pattern in patterns.items():
+            if re.search(pattern, c):
+                actions.append(action)
         if not actions:
             actions = ["move"]
 
         forces = ["gravity"]
-        if any(a in actions for a in ["kick", "throw", "collision", "bounce"]):
+        if any(a in actions for a in ["kick", "throw", "collision", "bounce", "hit"]):
             forces.append("contact force")
 
         outcomes = ["position changes"]
         if "collision" in actions:
             outcomes.append("abrupt velocity change")
         if "bounce" in actions:
-            outcomes.append("direction reverses")
+            outcomes.append("direction changes")
         if "fall" in actions:
-            outcomes.append("drops downward")
+            outcomes.append("downward motion")
 
         return {
             "entities": entities,
@@ -139,4 +172,10 @@ class QwenVLRunner:
         try:
             return json.loads(text)
         except json.JSONDecodeError:
-            return {"raw": text}
+            match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(0))
+                except json.JSONDecodeError:
+                    return {}
+            return {}

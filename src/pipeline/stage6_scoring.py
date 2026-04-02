@@ -19,12 +19,14 @@ def run(cfg: dict, scoring_cfg: dict, out_root, logger) -> None:
             continue
 
         parse = row.get("vision_checked_parse") or row.get("raw_parse", {})
+        reason = str(row.get("physics_reasoning", "")).strip()
+        causal_clarity = min(max(len(reason.split()) / 20.0, 0.2), 1.0)
         base, comps = compute_richness(
             len(parse.get("entities", [])),
             len(parse.get("actions", [])),
             len(parse.get("forces", [])),
             len(parse.get("outcomes", [])),
-            causal_clarity=0.7,
+            causal_clarity=causal_clarity,
             weights=comp_w,
         )
         flags = {

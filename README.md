@@ -26,9 +26,18 @@ python scripts/run_pipeline.py
 ```
 
 ## Exact Commands
+### 0) Build test subset from Panda-70M `train_2m.csv` (sports-focused, <=30k prompts)
+```bash
+python scripts/build_prompt_subset.py \
+  --input-csv data/panda70m_meta/train_2m.csv \
+  --output-csv data/panda70m_meta/train_2m_sports_30k.csv \
+  --max-samples 30000 \
+  --seed 42
+```
+
 ### Metadata inspection
 ```bash
-python scripts/inspect_metadata.py --csv data/panda70m_metadata.csv
+python scripts/inspect_metadata.py --csv data/panda70m_meta/train_2m_sports_30k.csv
 ```
 
 ### Shortlist building (prefilter + artifacts)
@@ -54,6 +63,22 @@ Repeat for `vision_checking`, `physics_reasoning`, and `prompt_extending`.
 ### Export final winners
 ```bash
 python scripts/export_winners.py
+```
+
+### 3) Action clustering via semantics matching
+```bash
+python scripts/cluster_actions_semantic.py \
+  --input-csv outputs/default_run/final_exports/passed_winners.csv \
+  --output-json outputs/default_run/final_exports/action_clusters.json
+```
+
+### 4) Data sampling with physics rewarding
+```bash
+python scripts/sample_physics_rewarded.py \
+  --input-csv outputs/default_run/final_exports/all_scored_samples.csv \
+  --output-csv outputs/default_run/final_exports/physics_rewarded_sample.csv \
+  --sample-size 5000 \
+  --alpha 2.0
 ```
 
 ## Resumability

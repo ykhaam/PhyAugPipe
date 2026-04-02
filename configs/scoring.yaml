@@ -8,9 +8,8 @@ scoring:
     stylization_non_natural: 0.20
     static_aftermath_weak_event: 0.10
   labels:
-    high: 0.75
-    medium: 0.50
-  export_threshold_default: 0.62
+    positive: 0.60
+  export_threshold_default: 0.60
   representative_bins:
     - [0.0, 0.2]
     - [0.2, 0.4]

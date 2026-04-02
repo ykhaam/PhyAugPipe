@@ -25,7 +25,7 @@ if __name__ == "__main__":
     short = pd.read_csv(out_root / "metadata_records" / "shortlist.csv")
     shard_rows = pd.DataFrame(filter_shard(short.to_dict(orient="records"), args.shard_id, args.num_shards))
 
-    vlm = QwenVLRunner(models["vlm"]["default_model"], models["runtime"]["device"])
+    vlm = QwenVLRunner(models)
     class L:
         def info(self, *a, **k): print(*a)
     logger = L()
@@ -33,9 +33,9 @@ if __name__ == "__main__":
     if args.stage == "element_parsing":
         stage3_element_parsing.run(cfg, out_root, shard_rows, vlm, logger)
     elif args.stage == "vision_checking":
-        stage4_vision_checking.run(cfg, out_root, vlm, logger)
+        stage4_vision_checking.run(cfg, out_root, shard_rows, vlm, logger)
     elif args.stage == "physics_reasoning":
-        stage5_physics_reasoning.run(cfg, out_root, vlm, logger)
+        stage5_physics_reasoning.run(cfg, out_root, shard_rows, vlm, logger)
     else:
         stage7_prompt_extending.run(cfg, out_root, shard_rows, vlm, logger)
 

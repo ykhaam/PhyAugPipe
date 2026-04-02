@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 
-def physics_label(score: float, labels: dict) -> str:
-    if score >= labels.get("high", 0.75):
-        return "high"
-    if score >= labels.get("medium", 0.5):
-        return "medium"
-    return "low"
+def physics_label(score: float, labels: dict) -> int:
+    threshold = float(labels.get("positive", 0.60))
+    return 1 if score >= threshold else 0
