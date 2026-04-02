@@ -35,6 +35,21 @@ python scripts/build_prompt_subset.py \
   --seed 42
 ```
 
+### 0.5) Download Qwen once (skip if already exists)
+```bash
+python scripts/download_qwen_model.py \
+  --model-id Qwen/Qwen2.5-3B-Instruct \
+  --local-dir models/Qwen2.5-3B-Instruct
+```
+
+### 0.6) Download videos for subset (skip existing files)
+```bash
+python scripts/download_videos_subset.py \
+  --input-csv data/panda70m_meta/train_2m_sports_30k.csv \
+  --raw-video-dir data/videos_raw \
+  --clip-dir data/videos
+```
+
 ### Metadata inspection
 ```bash
 python scripts/inspect_metadata.py --csv data/panda70m_meta/train_2m_sports_30k.csv
