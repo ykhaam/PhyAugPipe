@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 
 
 class ShortlistBuilder:
     def __init__(self, keywords: list[str]):
         self.keywords = [k.lower() for k in keywords]
+        self._keyword_pattern = re.compile(r"\\b(?:" + "|".join(re.escape(k) for k in self.keywords) + r")\\b")
 
     def build(
         self,
@@ -26,6 +29,6 @@ class ShortlistBuilder:
             out = out[(dur >= duration_min_sec) & (dur <= duration_max_sec)]
         if sports_dynamics_only and "caption" in out.columns:
             text = out["caption"].fillna("").str.lower()
-            mask = text.apply(lambda x: any(k in x for k in self.keywords))
+            mask = text.str.contains(self._keyword_pattern)
             out = out[mask]
         return out
