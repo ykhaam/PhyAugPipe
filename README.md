@@ -65,6 +65,20 @@ stage1에서 중복 필터링을 하지 않습니다.
 그리고 다운로드는 stage1 결과(`metadata_records/shortlist.csv`) 기준으로 실행됩니다.
 (`yt-dlp` 다운로드는 의도적으로 분리되어 있으므로 별도 스크립트를 사용하세요.)
 
+### (권장) 완전 분리 3단계 실행
+한 번에 안 하고, 정확히 1→2→3으로 분리하려면:
+```bash
+# 1) CSV 필터링만
+python scripts/run_phase.py --phase filter_csv
+
+# 2) (로컬) 다운로드만
+python scripts/run_phase.py --phase download_local
+
+# 3) 프레임 추출만
+python scripts/run_phase.py --phase extract_frames
+```
+이렇게 하면 각 단계를 재시도/검증하기 훨씬 쉽습니다.
+
 ---
 
 ## 1) `run_phase` 순서와 중복 여부
@@ -74,6 +88,12 @@ stage1에서 중복 필터링을 하지 않습니다.
 - `prepare`:
   - stage1_prefilter
   - stage2_extract_frames
+- `filter_csv`:
+  - `prepare.csv_filter`만 실행
+- `download_local`:
+  - stage1 shortlist 생성 후 `prepare.video_download`만 실행
+- `extract_frames`:
+  - stage2_extract_frames만 실행
 - `data_filtering_5steps`:
   - 내부적으로 `prepare`를 먼저 보장 호출한 뒤(stage1-2 결과 재사용)
   - stage3_element_parsing

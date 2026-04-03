@@ -102,6 +102,21 @@ def run_prepare(cfg: dict, out_root: Path, logger) -> pd.DataFrame:
     return rows
 
 
+def run_filter_csv_only(cfg: dict, logger) -> None:
+    maybe_filter_csv_for_prepare(cfg, logger)
+
+
+def run_download_local_only(cfg: dict, out_root: Path, logger) -> None:
+    rows = load_shortlist_or_build(cfg, out_root, logger)
+    _ = rows
+    maybe_download_videos_for_prepare(cfg, logger, shortlist_csv=str(out_root / "metadata_records" / "shortlist.csv"))
+
+
+def run_extract_frames_only(cfg: dict, out_root: Path, logger) -> pd.DataFrame:
+    rows = load_shortlist_or_build(cfg, out_root, logger)
+    return stage2_extract_frames.run(cfg, out_root, rows, logger)
+
+
 def run_data_filtering_5steps(cfg: dict, models: dict, scoring_cfg: dict, out_root: Path, logger) -> pd.DataFrame:
     rows = run_prepare(cfg, out_root, logger)
     vlm = QwenVLRunner(models)
@@ -125,9 +140,15 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Run phased pipeline for easier testing")
     ap.add_argument(
         "--phase",
-        choices=["prepare", "data_filtering_5steps", "export", "all"],
+        choices=["filter_csv", "download_local", "extract_frames", "prepare", "data_filtering_5steps", "export", "all"],
         required=True,
-        help="prepare: stage1-2, data_filtering_5steps: stage3-7, export: stage8, all: stage1-8",
+        help=(
+            "filter_csv: run prepare.csv_filter only, "
+            "download_local: stage1 shortlist + prepare.video_download, "
+            "extract_frames: stage2 only, "
+            "prepare: stage1-2(+optional pre-steps), "
+            "data_filtering_5steps: stage3-7, export: stage8, all: stage1-8"
+        ),
     )
     ap.add_argument("--config", default="configs/default.yaml")
     ap.add_argument("--models", default="configs/models.yaml")
@@ -141,7 +162,13 @@ def main() -> None:
     out_root = ensure_dir(Path(cfg["project"]["output_root"]) / cfg["project"]["run_name"])
     logger = build_logger("pipeline.phase", out_root / "run_phase.log")
 
-    if args.phase == "prepare":
+    if args.phase == "filter_csv":
+        run_filter_csv_only(cfg, logger)
+    elif args.phase == "download_local":
+        run_download_local_only(cfg, out_root, logger)
+    elif args.phase == "extract_frames":
+        run_extract_frames_only(cfg, out_root, logger)
+    elif args.phase == "prepare":
         run_prepare(cfg, out_root, logger)
     elif args.phase == "data_filtering_5steps":
         run_data_filtering_5steps(cfg, models, scoring_cfg, out_root, logger)
