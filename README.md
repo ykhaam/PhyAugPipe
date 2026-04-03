@@ -79,6 +79,16 @@ python scripts/run_phase.py --phase extract_frames
 ```
 이렇게 하면 각 단계를 재시도/검증하기 훨씬 쉽습니다.
 
+### 아티팩트 연동 체크(강력 권장)
+아래 검증으로 stage 산출물들이 sample_id 기준으로 서로 연결되는지 확인할 수 있습니다.
+```bash
+python scripts/check_artifact_links.py --run-dir outputs/default_run
+```
+로컬 영상 경로까지 검증하려면:
+```bash
+python scripts/check_artifact_links.py --run-dir outputs/default_run --check-local-video-path
+```
+
 ---
 
 ## 1) `run_phase` 순서와 중복 여부
