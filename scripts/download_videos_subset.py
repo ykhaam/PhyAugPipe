@@ -9,6 +9,9 @@ import subprocess
 import pandas as pd
 
 
+PROMPT_FIELD_CANDIDATES = ("caption", "original_caption", "text", "prompt")
+
+
 def hms_to_sec(v: str) -> float:
     h, m, s = v.split(":")
     return int(h) * 3600 + int(m) * 60 + float(s)
@@ -81,6 +84,13 @@ def save_prompt_sidecar(
         )
 
 
+def resolve_row_caption(row: pd.Series) -> str:
+    for field in PROMPT_FIELD_CANDIDATES:
+        if field in row and str(row.get(field, "")).strip():
+            return str(row.get(field, ""))
+    return ""
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Download Panda subset videos/clips with resume behavior")
     ap.add_argument("--input-csv", required=True, help="Filtered CSV (e.g., train_2m_sports_30k.csv)")
@@ -116,7 +126,7 @@ def main() -> None:
         url = str(row["url"])
         clip_start = str(row["clip_start"])
         clip_end = str(row["clip_end"])
-        caption = str(row.get("caption", ""))
+        caption = resolve_row_caption(row)
         row_payload = {k: str(v) for k, v in row.to_dict().items()}
 
         clip_out = clip_dir / f"{sample_id}.mp4"

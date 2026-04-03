@@ -65,6 +65,7 @@ python scripts/download_videos_subset.py \
   --save-metadata-dir data/prompts_meta
 ```
 This writes `<sample_id>.txt` (caption prompt) and `<sample_id>.json` (row metadata) next to downloaded clips.
+Prompt text sidecar resolution order is: `caption` → `original_caption` → `text` → `prompt`.
 
 ### Metadata inspection
 ```bash
