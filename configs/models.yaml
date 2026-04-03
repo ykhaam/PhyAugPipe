@@ -1,0 +1,21 @@
+vlm:
+  default_model: Qwen/Qwen2.5-3B-Instruct
+  backend: transformers_text  # transformers_text | stub
+  enable_cot_prompting: true
+  tokenizer_trust_remote_code: true
+  torch_dtype: bfloat16
+  max_new_tokens: 512
+  temperature: 0.0
+  top_p: 0.9
+  use_fast: true
+
+runtime:
+  device: auto
+  batch_size: 1
+  num_workers: 2
+
+multi_gpu:
+  enabled: true
+  num_shards: auto
+  shard_strategy: hash_sample_id
+  shard_merge_order: sample_id

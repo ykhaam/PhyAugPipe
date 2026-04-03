@@ -1,0 +1,18 @@
+scoring:
+  components:
+    entity_interaction_richness_weight: 0.35
+    force_outcome_visibility_weight: 0.35
+    causal_clarity_weight: 0.30
+  penalties:
+    heavy_camera_motion: 0.15
+    stylization_non_natural: 0.20
+    static_aftermath_weak_event: 0.10
+  labels:
+    positive: 0.60
+  export_threshold_default: 0.60
+  representative_bins:
+    - [0.0, 0.2]
+    - [0.2, 0.4]
+    - [0.4, 0.6]
+    - [0.6, 0.8]
+    - [0.8, 1.0]

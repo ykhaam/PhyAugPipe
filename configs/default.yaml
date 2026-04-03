@@ -1,0 +1,97 @@
+project:
+  name: phyaugpipe_panda70m
+  seed: 42
+  output_root: outputs
+  run_name: default_run
+
+io:
+  metadata_csv: data/panda70m_metadata.csv
+  metadata_id_field: sample_id
+  metadata_split_field: split
+  metadata_caption_field: caption
+  metadata_desirable_field: desirability
+  metadata_shot_field: shot_count
+  metadata_duration_field: duration_sec
+  metadata_video_ref_field: video_path
+  local_video_dirs:
+    - data/videos
+
+modes:
+  metadata_only: true
+  smoke_test: false
+  smoke_test_n: 10
+  overwrite: false
+
+prepare:
+  csv_filter:
+    enabled: false
+    input_csv: data/panda70m_meta/train_2m.csv
+    output_csv: data/panda70m_meta/train_2m_sports_30k.csv
+    caption_field: caption
+    max_samples: 30000
+    seed: 42
+    disable_stage1_filters: true
+    keywords:
+      - kick
+      - jump
+      - throw
+      - fall
+      - collide
+      - run
+      - bounce
+      - spin
+  video_download:
+    enabled: false
+    provider: video2dataset  # yt-dlp intentionally separate from run_phase prepare
+    csv: ""
+    output_folder: data/panda70m_subset_v2d
+    config: video2dataset/video2dataset/configs/panda70m.yaml
+    extra_columns: "[matching_score,desirable_filtering,shot_boundary_detection]"
+    url_col: url
+    caption_col: caption
+    clip_col: timestamp
+
+shortlist:
+  apply_filters: true
+  desirable_only: true
+  single_shot_only: true
+  sports_dynamics_only: true
+  keywords:
+    - kick
+    - jump
+    - throw
+    - fall
+    - collide
+    - run
+    - bounce
+    - spin
+  duration_min_sec: 1.0
+  duration_max_sec: 30.0
+  random_shuffle: false
+  random_seed: 42
+  max_samples: null
+
+frames:
+  enabled: true
+  strategy: uniform  # uniform | middle
+  num_frames: 4
+  width: 640
+  jpg_quality: 90
+
+pipeline:
+  stages:
+    - stage1_prefilter
+    - stage2_extract_frames
+    - stage3_element_parsing
+    - stage4_vision_checking
+    - stage5_physics_reasoning
+    - stage6_scoring
+    - stage7_prompt_extending
+    - stage8_export
+
+export:
+  selection_mode: threshold  # threshold | top_n
+  threshold: null
+  top_n: 1000
+  balanced_by_split: false
+  include_rejected: true
