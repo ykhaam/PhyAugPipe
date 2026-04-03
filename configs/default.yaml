@@ -38,9 +38,9 @@ shortlist:
     - spin
   duration_min_sec: 1.0
   duration_max_sec: 30.0
-  random_shuffle: true
+  random_shuffle: false
   random_seed: 42
-  max_samples: 30000
+  max_samples: null
 
 frames:
   enabled: true

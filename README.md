@@ -35,6 +35,9 @@ python scripts/build_prompt_subset.py \
   --seed 42
 ```
 
+> Note: to avoid duplicate downsampling, default `configs/default.yaml` keeps
+> `shortlist.max_samples: null`. The 30k cap is applied in this step only.
+
 ### 0.5) Download Qwen once (skip if already exists)
 ```bash
 python scripts/download_qwen_model.py \
