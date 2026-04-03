@@ -45,13 +45,15 @@ python scripts/download_qwen_model.py \
   --local-dir models/Qwen2.5-3B-Instruct
 ```
 
-### 0.6) Download videos for subset (skip existing files)
+### 0.6) Download videos for subset with official `video2dataset`
 ```bash
-python scripts/download_videos_subset.py \
-  --input-csv data/panda70m_meta/train_2m_sports_30k.csv \
-  --raw-video-dir data/videos_raw \
-  --clip-dir data/videos
+python scripts/download_with_video2dataset.py \
+  --csv data/panda70m_meta/train_2m_sports_30k.csv \
+  --output-folder data/panda70m_subset_v2d \
+  --config video2dataset/video2dataset/configs/panda70m.yaml
 ```
+
+This downloads **only rows present in the CSV** you pass in (`train_2m_sports_30k.csv` if you follow step 0).
 
 ### Metadata inspection
 ```bash
