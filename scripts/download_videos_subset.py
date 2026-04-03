@@ -5,6 +5,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 import argparse
 import json
 import subprocess
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -98,6 +99,7 @@ def main() -> None:
     ap.add_argument("--clip-dir", default="data/videos")
     ap.add_argument("--save-prompts-dir", default="", help="Optional: write <sample_id>.txt captions")
     ap.add_argument("--save-metadata-dir", default="", help="Optional: write <sample_id>.json row metadata")
+    ap.add_argument("--manifest-jsonl", default="", help="Optional: write per-row download/prompt mapping manifest JSONL")
     ap.add_argument("--max-downloads", type=int, default=0, help="0 means all")
     args = ap.parse_args()
 
@@ -116,6 +118,7 @@ def main() -> None:
     skipped = 0
     errors = 0
     prompt_saved = 0
+    manifest_rows: list[dict[str, str]] = []
 
     for _, row in df.iterrows():
         if args.max_downloads > 0 and done >= args.max_downloads:
@@ -130,11 +133,25 @@ def main() -> None:
         row_payload = {k: str(v) for k, v in row.to_dict().items()}
 
         clip_out = clip_dir / f"{sample_id}.mp4"
+        prompt_txt = (prompts_dir / f"{sample_id}.txt") if prompts_dir is not None else None
+        metadata_json = (metadata_dir / f"{sample_id}.json") if metadata_dir is not None else None
+        status = "error"
         if clip_out.exists() and clip_out.stat().st_size > 0:
             skipped += 1
             if prompts_dir is not None or metadata_dir is not None:
                 save_prompt_sidecar(sample_id, caption, prompts_dir, metadata_dir, row_payload)
                 prompt_saved += 1
+            status = "skipped_existing"
+            manifest_rows.append({
+                "sample_id": sample_id,
+                "video_id": video_id,
+                "status": status,
+                "clip_path": str(clip_out),
+                "prompt_txt_path": str(prompt_txt) if prompt_txt is not None else "",
+                "metadata_json_path": str(metadata_json) if metadata_json is not None else "",
+                "error": "",
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            })
             continue
 
         try:
@@ -144,8 +161,27 @@ def main() -> None:
                 save_prompt_sidecar(sample_id, caption, prompts_dir, metadata_dir, row_payload)
                 prompt_saved += 1
             done += 1
+            status = "downloaded"
         except subprocess.CalledProcessError:
             errors += 1
+            status = "error"
+
+        manifest_rows.append({
+            "sample_id": sample_id,
+            "video_id": video_id,
+            "status": status,
+            "clip_path": str(clip_out) if clip_out.exists() else "",
+            "prompt_txt_path": str(prompt_txt) if (prompt_txt is not None and prompt_txt.exists()) else "",
+            "metadata_json_path": str(metadata_json) if (metadata_json is not None and metadata_json.exists()) else "",
+            "error": "" if status != "error" else "download_or_clip_failed",
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        })
+
+    manifest_path = Path(args.manifest_jsonl) if args.manifest_jsonl else (clip_dir / "download_manifest.jsonl")
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    with manifest_path.open("w", encoding="utf-8") as f:
+        for rec in manifest_rows:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     print({
         "requested_rows": len(df) if args.max_downloads == 0 else min(len(df), args.max_downloads),
@@ -157,6 +193,7 @@ def main() -> None:
         "raw_video_dir": str(raw_dir),
         "prompts_dir": str(prompts_dir) if prompts_dir else "",
         "metadata_dir": str(metadata_dir) if metadata_dir else "",
+        "manifest_jsonl": str(manifest_path),
     })
 
 

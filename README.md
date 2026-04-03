@@ -62,10 +62,12 @@ python scripts/download_videos_subset.py \
   --raw-video-dir data/videos_raw \
   --clip-dir data/videos \
   --save-prompts-dir data/prompts_txt \
-  --save-metadata-dir data/prompts_meta
+  --save-metadata-dir data/prompts_meta \
+  --manifest-jsonl data/videos/download_manifest.jsonl
 ```
 This writes `<sample_id>.txt` (caption prompt) and `<sample_id>.json` (row metadata) next to downloaded clips.
 Prompt text sidecar resolution order is: `caption` → `original_caption` → `text` → `prompt`.
+It also writes a manifest JSONL with `sample_id`, `status`, `clip_path`, and sidecar paths for deterministic matching.
 
 ### Metadata inspection
 ```bash
