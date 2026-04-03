@@ -10,7 +10,8 @@ from src.metadata.prompt_fields import FALLBACK_PROMPT_FIELDS
 class ShortlistBuilder:
     def __init__(self, keywords: list[str]):
         self.keywords = [k.lower() for k in keywords]
-        self._keyword_pattern = re.compile(r"\\b(?:" + "|".join(re.escape(k) for k in self.keywords) + r")\\b")
+        variants = [rf"{re.escape(k)}(?:s|es|ed|ing|er)?" for k in self.keywords]
+        self._keyword_pattern = re.compile(r"\b(?:" + "|".join(variants) + r")\b")
 
     def build(
         self,
