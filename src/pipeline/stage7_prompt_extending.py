@@ -19,7 +19,7 @@ def run(cfg: dict, out_root, rows_df, vlm_runner, logger) -> None:
         if out_path.exists() and not cfg["modes"].get("overwrite", False):
             continue
         md = by_id.get(sid, {})
-        caption = md.get(cap_field, "")
+        caption = md.get("original_caption", md.get(cap_field, ""))
         prompt = PROMPT_EXTEND_PROMPT.format(caption=caption, parse_json=json.dumps(parse_row.get("vision_checked_parse", {})), reasoning=parse_row.get("physics_reasoning", ""))
         obj = vlm_runner.infer_json(prompt, [])
         write_sample_json(out_root, "prompt_records", sid, {

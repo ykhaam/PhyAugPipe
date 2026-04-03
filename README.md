@@ -145,3 +145,8 @@ python scripts/sample_physics_rewarded.py \
 ## Metadata-only mode
 Set `modes.metadata_only: true` to run pipeline without requiring local videos.
 Missing local videos are logged and skipped (non-fatal).
+
+## Prompt field handling (important)
+- Stage1 now resolves prompt text with fallback priority: `metadata_caption_field` (config) → `caption` → `original_caption` → `text` → `prompt`.
+- It writes canonical `original_caption` into shortlist rows so downstream stage7/stage8 always have source prompt text.
+- If your CSV does not use `caption`, set `io.metadata_caption_field` accordingly (for example `text`).

@@ -4,6 +4,8 @@ import re
 
 import pandas as pd
 
+from src.metadata.prompt_fields import FALLBACK_PROMPT_FIELDS
+
 
 class ShortlistBuilder:
     def __init__(self, keywords: list[str]):
@@ -30,8 +32,11 @@ class ShortlistBuilder:
         if "duration_sec" in out.columns:
             dur = out["duration_sec"].fillna(0).astype(float)
             out = out[(dur >= duration_min_sec) & (dur <= duration_max_sec)]
-        if sports_dynamics_only and "caption" in out.columns:
-            text = out["caption"].fillna("").str.lower()
+        if sports_dynamics_only:
+            text_field = next((f for f in FALLBACK_PROMPT_FIELDS if f in out.columns), None)
+            if text_field is None:
+                raise ValueError(f"sports_dynamics_only=True but none of prompt fields are present: {list(FALLBACK_PROMPT_FIELDS)}")
+            text = out[text_field].fillna("").str.lower()
             mask = text.str.contains(self._keyword_pattern)
             out = out[mask]
 

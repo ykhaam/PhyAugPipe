@@ -25,7 +25,7 @@ def run(cfg: dict, scoring_cfg: dict, out_root: Path, rows_df: pd.DataFrame, log
             "source_split": md.get(split_field),
             "source_metadata_reference": cfg["io"]["metadata_csv"],
             "local_video_path": md.get("local_video_path"),
-            "original_caption": md.get(cap_field, ""),
+            "original_caption": md.get("original_caption", md.get(cap_field, "")),
             "cleaned_prompt": prompt.get("cleaned_prompt", ""),
             "extended_prompt": prompt.get("extended_prompt", ""),
             "parsed_entities": parse.get("vision_checked_parse", {}).get("entities", []),
