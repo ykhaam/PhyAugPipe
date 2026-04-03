@@ -58,6 +58,14 @@ python scripts/download_videos_subset.py \
 python scripts/inspect_metadata.py --csv data/panda70m_meta/train_2m_sports_30k.csv
 ```
 
+### (Optional) Convert raw `train_2m.csv` directly to pipeline schema + first 10 rows
+```bash
+python scripts/prepare_pipeline_csv.py \
+  --input-csv data/panda70m_meta/train_2m.csv \
+  --output-csv data/panda70m_meta/train_2m_top10_pipeline.csv \
+  --top-n 10
+```
+
 ### Shortlist building (prefilter + artifacts)
 ```bash
 python scripts/run_pipeline.py
