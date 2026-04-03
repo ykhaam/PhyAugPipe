@@ -24,7 +24,7 @@ def run(cfg: dict, out_root, rows_df: pd.DataFrame, vlm_runner, logger) -> None:
 
         prompt = PHYSICS_REASON_PROMPT.format(
             parse_json=json.dumps(row.get("vision_checked_parse", {})),
-            caption=md.get(cap_field, row.get("original", "")),
+            caption=md.get("original_caption", md.get(cap_field, row.get("original", ""))),
             frame_hints=", ".join(frame_paths[:4]) if frame_paths else "[]",
         )
         resp = vlm_runner.infer_json(prompt, frame_paths)

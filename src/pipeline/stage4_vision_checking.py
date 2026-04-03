@@ -25,7 +25,7 @@ def run(cfg: dict, out_root: Path, rows_df: pd.DataFrame, vlm_runner, logger) ->
             frame_paths = json.loads(frame_record_path.read_text(encoding="utf-8")).get("frame_paths", [])
         prompt = VISION_CHECK_PROMPT.format(
             parse_json=json.dumps(row.get("raw_parse", {})),
-            caption=md.get(cap_field, row.get("original", "")),
+            caption=md.get("original_caption", md.get(cap_field, row.get("original", ""))),
             frame_hints=", ".join(frame_paths[:4]) if frame_paths else "[]",
         )
         obj = vlm_runner.infer_json(prompt, frame_paths)
