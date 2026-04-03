@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import argparse
+import json
 import subprocess
 
 import pandas as pd
@@ -61,11 +62,32 @@ def ensure_clip(raw_video: Path, clip_out: Path, start: str, end: str) -> None:
     ])
 
 
+def save_prompt_sidecar(
+    sample_id: str,
+    caption: str,
+    prompt_dir: Path | None,
+    metadata_dir: Path | None,
+    row_payload: dict[str, str],
+) -> None:
+    if prompt_dir is not None:
+        prompt_dir.mkdir(parents=True, exist_ok=True)
+        (prompt_dir / f"{sample_id}.txt").write_text(caption, encoding="utf-8")
+
+    if metadata_dir is not None:
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+        (metadata_dir / f"{sample_id}.json").write_text(
+            json.dumps(row_payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Download Panda subset videos/clips with resume behavior")
     ap.add_argument("--input-csv", required=True, help="Filtered CSV (e.g., train_2m_sports_30k.csv)")
     ap.add_argument("--raw-video-dir", default="data/videos_raw")
     ap.add_argument("--clip-dir", default="data/videos")
+    ap.add_argument("--save-prompts-dir", default="", help="Optional: write <sample_id>.txt captions")
+    ap.add_argument("--save-metadata-dir", default="", help="Optional: write <sample_id>.json row metadata")
     ap.add_argument("--max-downloads", type=int, default=0, help="0 means all")
     args = ap.parse_args()
 
@@ -77,10 +99,13 @@ def main() -> None:
 
     raw_dir = Path(args.raw_video_dir)
     clip_dir = Path(args.clip_dir)
+    prompts_dir = Path(args.save_prompts_dir) if args.save_prompts_dir else None
+    metadata_dir = Path(args.save_metadata_dir) if args.save_metadata_dir else None
 
     done = 0
     skipped = 0
     errors = 0
+    prompt_saved = 0
 
     for _, row in df.iterrows():
         if args.max_downloads > 0 and done >= args.max_downloads:
@@ -91,15 +116,23 @@ def main() -> None:
         url = str(row["url"])
         clip_start = str(row["clip_start"])
         clip_end = str(row["clip_end"])
+        caption = str(row.get("caption", ""))
+        row_payload = {k: str(v) for k, v in row.to_dict().items()}
 
         clip_out = clip_dir / f"{sample_id}.mp4"
         if clip_out.exists() and clip_out.stat().st_size > 0:
             skipped += 1
+            if prompts_dir is not None or metadata_dir is not None:
+                save_prompt_sidecar(sample_id, caption, prompts_dir, metadata_dir, row_payload)
+                prompt_saved += 1
             continue
 
         try:
             raw_video = ensure_video_download(url, video_id, raw_dir)
             ensure_clip(raw_video, clip_out, clip_start, clip_end)
+            if prompts_dir is not None or metadata_dir is not None:
+                save_prompt_sidecar(sample_id, caption, prompts_dir, metadata_dir, row_payload)
+                prompt_saved += 1
             done += 1
         except subprocess.CalledProcessError:
             errors += 1
@@ -108,9 +141,12 @@ def main() -> None:
         "requested_rows": len(df) if args.max_downloads == 0 else min(len(df), args.max_downloads),
         "downloaded_or_clipped": done,
         "skipped_existing": skipped,
+        "prompt_or_metadata_saved": prompt_saved,
         "errors": errors,
         "clip_dir": str(clip_dir),
         "raw_video_dir": str(raw_dir),
+        "prompts_dir": str(prompts_dir) if prompts_dir else "",
+        "metadata_dir": str(metadata_dir) if metadata_dir else "",
     })
 
 

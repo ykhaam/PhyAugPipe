@@ -55,6 +55,17 @@ python scripts/download_with_video2dataset.py \
 
 This downloads **only rows present in the CSV** you pass in (`train_2m_sports_30k.csv` if you follow step 0).
 
+If you use the fallback `yt-dlp` downloader instead of `video2dataset`, store prompts as sidecar files:
+```bash
+python scripts/download_videos_subset.py \
+  --input-csv data/panda70m_meta/train_2m_sports_30k.csv \
+  --raw-video-dir data/videos_raw \
+  --clip-dir data/videos \
+  --save-prompts-dir data/prompts_txt \
+  --save-metadata-dir data/prompts_meta
+```
+This writes `<sample_id>.txt` (caption prompt) and `<sample_id>.json` (row metadata) next to downloaded clips.
+
 ### Metadata inspection
 ```bash
 python scripts/inspect_metadata.py --csv data/panda70m_meta/train_2m_sports_30k.csv
