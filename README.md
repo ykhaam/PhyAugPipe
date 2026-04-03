@@ -55,6 +55,15 @@ python scripts/run_phase.py --phase data_filtering_5steps
 python scripts/run_phase.py --phase export
 ```
 
+### (선택) 네가 원하는 방식: `prepare` 한 번에 "CSV 필터링 -> 다운로드 -> 프레임 추출"
+`configs/default.yaml`에서 아래만 켜면 됨:
+- `prepare.csv_filter.enabled: true`
+- `prepare.video_download.enabled: true` (provider는 현재 `video2dataset`만 지원)
+
+이 모드에서는 `prepare.csv_filter.disable_stage1_filters: true` 기본값으로 인해
+stage1에서 중복 필터링을 하지 않습니다.
+(`yt-dlp` 다운로드는 의도적으로 분리되어 있으므로 별도 스크립트를 사용하세요.)
+
 ---
 
 ## 1) `run_phase` 순서와 중복 여부
@@ -172,6 +181,9 @@ outputs/<run_name>/
 
 3. **매칭 불안**
    - yt-dlp 경로에서는 `--manifest-jsonl`을 반드시 켜서 sample별 status/path를 추적하세요.
+
+4. **prepare에서 두 번 필터링되는 것 같음**
+   - `prepare.csv_filter.enabled: true`를 켠 경우 `disable_stage1_filters: true`를 유지하면 stage1 중복 필터링을 막을 수 있습니다.
 
 ---
 

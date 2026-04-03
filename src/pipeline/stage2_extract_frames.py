@@ -21,6 +21,8 @@ def run(cfg: dict, out_root: Path, shortlist: pd.DataFrame, logger) -> pd.DataFr
         sample_id = str(r[cfg["io"]["metadata_id_field"]])
         video_ref = str(r.get(cfg["io"]["metadata_video_ref_field"], ""))
         path = locate_video(video_ref, local_dirs) if video_ref else None
+        if not path:
+            path = locate_video(f"{sample_id}.mp4", local_dirs)
         r["local_video_path"] = path
         if path:
             found += 1

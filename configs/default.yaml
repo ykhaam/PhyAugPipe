@@ -22,7 +22,37 @@ modes:
   smoke_test_n: 10
   overwrite: false
 
+prepare:
+  csv_filter:
+    enabled: false
+    input_csv: data/panda70m_meta/train_2m.csv
+    output_csv: data/panda70m_meta/train_2m_sports_30k.csv
+    caption_field: caption
+    max_samples: 30000
+    seed: 42
+    disable_stage1_filters: true
+    keywords:
+      - kick
+      - jump
+      - throw
+      - fall
+      - collide
+      - run
+      - bounce
+      - spin
+  video_download:
+    enabled: false
+    provider: video2dataset  # yt-dlp intentionally separate from run_phase prepare
+    csv: ""
+    output_folder: data/panda70m_subset_v2d
+    config: video2dataset/video2dataset/configs/panda70m.yaml
+    extra_columns: "[matching_score,desirable_filtering,shot_boundary_detection]"
+    url_col: url
+    caption_col: caption
+    clip_col: timestamp
+
 shortlist:
+  apply_filters: true
   desirable_only: true
   single_shot_only: true
   sports_dynamics_only: true

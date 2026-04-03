@@ -22,6 +22,15 @@ def run(cfg: dict, out_root: Path, logger) -> pd.DataFrame:
     logger.info("total metadata entries=%s", len(df))
     logger.info("resolved prompt field=%s", prompt_field)
 
+    if not cfg.get("shortlist", {}).get("apply_filters", True):
+        logger.info("shortlist.apply_filters=false -> using metadata rows as-is")
+        short = df.copy()
+        mdir = out_root / "metadata_records"
+        mdir.mkdir(parents=True, exist_ok=True)
+        short.to_csv(mdir / "shortlist.csv", index=False)
+        write_jsonl(mdir / "shortlist.jsonl", short.to_dict(orient="records"))
+        return short
+
     s = cfg["shortlist"]
     sb = ShortlistBuilder(s["keywords"])
     short = sb.build(
