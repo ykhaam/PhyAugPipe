@@ -30,7 +30,6 @@ shortlist:
     - kick
     - jump
     - throw
-    - hit
     - fall
     - collide
     - run

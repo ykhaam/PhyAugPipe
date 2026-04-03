@@ -11,7 +11,7 @@ import pandas as pd
 
 DEFAULT_SPORTS_KEYWORDS = [
     "soccer", "football", "basketball", "baseball", "tennis", "volleyball", "hockey", "rugby",
-    "athlete", "runner", "running", "jump", "kick", "throw", "hit", "spin", "bounce", "race",
+    "athlete", "runner", "running", "jump", "kick", "throw", "spin", "bounce", "race",
     "stadium", "field", "court", "gym", "swim", "cycling", "skate", "ski",
 ]
 
