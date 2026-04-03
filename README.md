@@ -1,32 +1,13 @@
 # PhyAugPipe-style Panda-70M Winner Selection Pipeline
 
-This project implements a **metadata-first, resumable, sharded pipeline** for selecting high-quality real-world winning videos from Panda-70M, aligned to PhyAugPipe stages:
-1. Element Parsing
-2. Vision Checking
-3. Physics Reasoning
-4. Data Scoring
-5. Prompt Extending
+이 레포는 **metadata-first** 방식으로 Panda-70M에서 후보를 고르고,
+프레임/추론/스코어링을 거쳐 최종 winner를 내보내는 파이프라인입니다.
 
-## Install
-```bash
-pip install -r requirements.txt
-```
+---
 
-## Quickstart (Smoke Test on 10 samples)
-1) Prepare a small metadata CSV at `data/panda70m_metadata.csv` with columns:
-`sample_id,split,caption,desirability,shot_count,duration_sec,video_path`
+## 0) 진짜로 필요한 순서 (헷갈리지 않게 3단계)
 
-2) Enable smoke mode in `configs/default.yaml`:
-- `modes.smoke_test: true`
-- `modes.smoke_test_n: 10`
-
-3) Run full pipeline:
-```bash
-python scripts/run_pipeline.py
-```
-
-## Exact Commands
-### 0) Build test subset from Panda-70M `train_2m.csv` (sports-focused, <=30k prompts)
+### Step 1. Prompt 필터링 (CSV 만들기)
 ```bash
 python scripts/build_prompt_subset.py \
   --input-csv data/panda70m_meta/train_2m.csv \
@@ -35,27 +16,19 @@ python scripts/build_prompt_subset.py \
   --seed 42
 ```
 
-> Note: to avoid duplicate downsampling, default `configs/default.yaml` keeps
-> `shortlist.max_samples: null`. The 30k cap is applied in this step only.
+### Step 2. 영상 다운로드 (+ prompt/metadata 매칭 파일)
+> 둘 중 하나 선택
 
-### 0.5) Download Qwen once (skip if already exists)
-```bash
-python scripts/download_qwen_model.py \
-  --model-id Qwen/Qwen2.5-3B-Instruct \
-  --local-dir models/Qwen2.5-3B-Instruct
-```
-
-### 0.6) Download videos for subset with official `video2dataset`
+#### 2-A) official video2dataset
 ```bash
 python scripts/download_with_video2dataset.py \
   --csv data/panda70m_meta/train_2m_sports_30k.csv \
   --output-folder data/panda70m_subset_v2d \
   --config video2dataset/video2dataset/configs/panda70m.yaml
 ```
+- CSV에 있는 row만 다운로드합니다.
 
-This downloads **only rows present in the CSV** you pass in (`train_2m_sports_30k.csv` if you follow step 0).
-
-If you use the fallback `yt-dlp` downloader instead of `video2dataset`, store prompts as sidecar files:
+#### 2-B) yt-dlp fallback (clip + prompt sidecar + manifest)
 ```bash
 python scripts/download_videos_subset.py \
   --input-csv data/panda70m_meta/train_2m_sports_30k.csv \
@@ -65,91 +38,151 @@ python scripts/download_videos_subset.py \
   --save-metadata-dir data/prompts_meta \
   --manifest-jsonl data/videos/download_manifest.jsonl
 ```
-This writes `<sample_id>.txt` (caption prompt) and `<sample_id>.json` (row metadata) next to downloaded clips.
-Prompt text sidecar resolution order is: `caption` → `original_caption` → `text` → `prompt`.
-It also writes a manifest JSONL with `sample_id`, `status`, `clip_path`, and sidecar paths for deterministic matching.
+- `data/videos/<sample_id>.mp4`
+- `data/prompts_txt/<sample_id>.txt`
+- `data/prompts_meta/<sample_id>.json`
+- `data/videos/download_manifest.jsonl` (status/경로 매핑)
 
-### Metadata inspection
+### Step 3. run_phase로 파이프라인 실행
 ```bash
-python scripts/inspect_metadata.py --csv data/panda70m_meta/train_2m_sports_30k.csv
-```
-
-### (Optional) Convert raw `train_2m.csv` directly to pipeline schema + first 10 rows
-```bash
-python scripts/prepare_pipeline_csv.py \
-  --input-csv data/panda70m_meta/train_2m.csv \
-  --output-csv data/panda70m_meta/train_2m_top10_pipeline.csv \
-  --top-n 10
-```
-
-### Shortlist building (prefilter + artifacts)
-```bash
-python scripts/run_pipeline.py
-```
-(Shortlist outputs in `outputs/<run_name>/metadata_records/`)
-
-### Phased testing (recommended)
-Run by larger blocks so you can verify incrementally:
-
-```bash
-# Phase A: prepare data (stage1-2)
+# A. 준비 단계 (stage1-2)
 python scripts/run_phase.py --phase prepare
 
-# Phase B: Data Filtering 5 steps (stage3-7)
+# B. data filtering 5단계 (stage3-7)
 python scripts/run_phase.py --phase data_filtering_5steps
 
-# Phase C: export winners/rejected (stage8)
+# C. export (stage8)
 python scripts/run_phase.py --phase export
-
-# Or run all phases in order
-python scripts/run_phase.py --phase all
 ```
 
-### Frame extraction for local subset
+---
+
+## 1) `run_phase` 순서와 중복 여부
+
+`run_phase`는 의도적으로 분리되어 있고, **출력 아티팩트를 재사용**합니다.
+
+- `prepare`:
+  - stage1_prefilter
+  - stage2_extract_frames
+- `data_filtering_5steps`:
+  - 내부적으로 `prepare`를 먼저 보장 호출한 뒤(stage1-2 결과 재사용)
+  - stage3_element_parsing
+  - stage4_vision_checking
+  - stage5_physics_reasoning
+  - stage6_scoring
+  - stage7_prompt_extending
+- `export`:
+  - stage8_export만 실행
+
+즉, 순서대로 `prepare -> data_filtering_5steps -> export` 하면 되고,
+이미 생성된 파일은 `modes.overwrite: false`일 때 건너뛰므로 불필요한 중복 실행을 줄입니다.
+
+---
+
+## 2) Data Filtering 5단계 입력/출력/역할 (연결 관계)
+
+아래 5단계는 `outputs/<run_name>/` 내부 아티팩트로 서로 연결됩니다.
+
+### Stage3 Element Parsing
+- 입력:
+  - `metadata_records/shortlist.csv` 기반 row
+  - `frame_records/<sample_id>.json`의 `frame_paths`
+- 출력:
+  - `parse_records/<sample_id>.json` (raw parse)
+- 역할:
+  - 프레임 + 원문 caption으로 객체/행동/힘 후보 구조화
+
+### Stage4 Vision Checking
+- 입력:
+  - `parse_records/<sample_id>.json` (raw parse)
+  - frame paths
+- 출력:
+  - 같은 `parse_records/<sample_id>.json`에 `vision_checked_parse` 갱신
+- 역할:
+  - parse 결과를 프레임 근거로 교정
+
+### Stage5 Physics Reasoning
+- 입력:
+  - `vision_checked_parse`
+  - frame paths
+- 출력:
+  - `parse_records/<sample_id>.json`에 `physics_reasoning` 추가
+- 역할:
+  - 인과/물리적 설명 생성
+
+### Stage6 Scoring
+- 입력:
+  - `parse_records/*.json`
+- 출력:
+  - 각 parse record에 `physics_richness`, `physics_label`, `penalties` 등 추가
+- 역할:
+  - 통과/탈락에 필요한 정량 점수 부여
+
+### Stage7 Prompt Extending
+- 입력:
+  - parse/scoring 결과
+  - canonical prompt(`original_caption`)
+- 출력:
+  - `prompt_records/<sample_id>.json` (`cleaned_prompt`, `extended_prompt`)
+- 역할:
+  - 최종 학습/생성용 프롬프트 확장
+
+---
+
+## 3) 최종 Export (Stage8)
+
 ```bash
-python scripts/extract_subset_frames.py
+python scripts/run_phase.py --phase export
 ```
 
-### Multi-GPU VLM execution (one process per GPU)
+생성 위치: `outputs/<run_name>/final_exports/`
+- `all_scored_samples.(csv|jsonl)`
+- `passed_winners.(csv|jsonl)`
+- `rejected_samples.(csv|jsonl)`
+
+---
+
+## 4) 디렉토리 구조 (핵심만)
+
+```text
+data/
+  panda70m_meta/                 # 입력 메타 CSV
+  videos/                        # clip 결과(sample_id.mp4)
+  videos_raw/                    # 원본 영상 캐시(videoID.mp4)
+  prompts_txt/                   # prompt sidecar txt
+  prompts_meta/                  # row sidecar json
+
+outputs/<run_name>/
+  metadata_records/              # shortlist.csv/jsonl
+  frame_records/                 # frame 경로 기록
+  parse_records/                 # stage3~6 누적 결과
+  prompt_records/                # stage7 결과
+  final_exports/                 # stage8 최종 산출
+```
+
+---
+
+## 5) 자주 하는 실수 체크
+
+1. **영상 다운로드 안 했는데 VLM 결과 기대**
+   - `modes.metadata_only: true`면 frame 없이도 파이프라인은 돌 수 있으나, 실제 비전 근거는 약해짐.
+
+2. **CSV prompt 컬럼명 불일치**
+   - prompt 해석 우선순위: `metadata_caption_field` -> `caption` -> `original_caption` -> `text` -> `prompt`.
+
+3. **매칭 불안**
+   - yt-dlp 경로에서는 `--manifest-jsonl`을 반드시 켜서 sample별 status/path를 추적하세요.
+
+---
+
+## 6) 설치
 ```bash
-CUDA_VISIBLE_DEVICES=0 python scripts/run_vlm_stage.py --stage element_parsing --shard-id 0 --num-shards 4
-CUDA_VISIBLE_DEVICES=1 python scripts/run_vlm_stage.py --stage element_parsing --shard-id 1 --num-shards 4
-CUDA_VISIBLE_DEVICES=2 python scripts/run_vlm_stage.py --stage element_parsing --shard-id 2 --num-shards 4
-CUDA_VISIBLE_DEVICES=3 python scripts/run_vlm_stage.py --stage element_parsing --shard-id 3 --num-shards 4
+pip install -r requirements.txt
 ```
-Repeat for `vision_checking`, `physics_reasoning`, and `prompt_extending`.
 
-### Export final winners
+## 7) Qwen 모델 사전 다운로드 (선택)
 ```bash
-python scripts/export_winners.py
+python scripts/download_qwen_model.py \
+  --model-id Qwen/Qwen2.5-3B-Instruct \
+  --local-dir models/Qwen2.5-3B-Instruct
 ```
-
-### 3) Action clustering via semantics matching
-```bash
-python scripts/cluster_actions_semantic.py \
-  --input-csv outputs/default_run/final_exports/passed_winners.csv \
-  --output-json outputs/default_run/final_exports/action_clusters.json
-```
-
-### 4) Data sampling with physics rewarding
-```bash
-python scripts/sample_physics_rewarded.py \
-  --input-csv outputs/default_run/final_exports/all_scored_samples.csv \
-  --output-csv outputs/default_run/final_exports/physics_rewarded_sample.csv \
-  --sample-size 5000 \
-  --alpha 2.0
-```
-
-## Resumability
-- Per-sample JSON artifacts are written at each stage.
-- Existing stage outputs are skipped unless `modes.overwrite: true`.
-- Crash-safe reruns process only missing items.
-
-## Metadata-only mode
-Set `modes.metadata_only: true` to run pipeline without requiring local videos.
-Missing local videos are logged and skipped (non-fatal).
-
-## Prompt field handling (important)
-- Stage1 now resolves prompt text with fallback priority: `metadata_caption_field` (config) → `caption` → `original_caption` → `text` → `prompt`.
-- It writes canonical `original_caption` into shortlist rows so downstream stage7/stage8 always have source prompt text.
-- If your CSV does not use `caption`, set `io.metadata_caption_field` accordingly (for example `text`).
