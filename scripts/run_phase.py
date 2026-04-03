@@ -56,7 +56,7 @@ def maybe_filter_csv_for_prepare(cfg: dict, logger) -> None:
     logger.info("prepare.csv_filter completed rows=%s output=%s", len(df), out)
 
 
-def maybe_download_videos_for_prepare(cfg: dict, logger) -> None:
+def maybe_download_videos_for_prepare(cfg: dict, logger, shortlist_csv: str | None = None) -> None:
     prepare_cfg = cfg.get("prepare", {}).get("video_download", {})
     if not prepare_cfg.get("enabled", False):
         return
@@ -65,7 +65,7 @@ def maybe_download_videos_for_prepare(cfg: dict, logger) -> None:
     if provider != "video2dataset":
         raise ValueError("prepare.video_download currently supports only provider=video2dataset (yt-dlp is intentionally separate).")
 
-    csv_path = prepare_cfg.get("csv", cfg["io"]["metadata_csv"])
+    csv_path = prepare_cfg.get("csv", "") or shortlist_csv or cfg["io"]["metadata_csv"]
     output_folder = prepare_cfg["output_folder"]
     config_path = prepare_cfg.get("config", "video2dataset/video2dataset/configs/panda70m.yaml")
     extra_columns = prepare_cfg.get("extra_columns", "[matching_score,desirable_filtering,shot_boundary_detection]")
@@ -96,8 +96,8 @@ def load_shortlist_or_build(cfg: dict, out_root: Path, logger) -> pd.DataFrame:
 
 def run_prepare(cfg: dict, out_root: Path, logger) -> pd.DataFrame:
     maybe_filter_csv_for_prepare(cfg, logger)
-    maybe_download_videos_for_prepare(cfg, logger)
     rows = load_shortlist_or_build(cfg, out_root, logger)
+    maybe_download_videos_for_prepare(cfg, logger, shortlist_csv=str(out_root / "metadata_records" / "shortlist.csv"))
     rows = stage2_extract_frames.run(cfg, out_root, rows, logger)
     return rows
 

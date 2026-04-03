@@ -62,6 +62,7 @@ python scripts/run_phase.py --phase export
 
 이 모드에서는 `prepare.csv_filter.disable_stage1_filters: true` 기본값으로 인해
 stage1에서 중복 필터링을 하지 않습니다.
+그리고 다운로드는 stage1 결과(`metadata_records/shortlist.csv`) 기준으로 실행됩니다.
 (`yt-dlp` 다운로드는 의도적으로 분리되어 있으므로 별도 스크립트를 사용하세요.)
 
 ---
