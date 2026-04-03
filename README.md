@@ -72,6 +72,23 @@ python scripts/run_pipeline.py
 ```
 (Shortlist outputs in `outputs/<run_name>/metadata_records/`)
 
+### Phased testing (recommended)
+Run by larger blocks so you can verify incrementally:
+
+```bash
+# Phase A: prepare data (stage1-2)
+python scripts/run_phase.py --phase prepare
+
+# Phase B: Data Filtering 5 steps (stage3-7)
+python scripts/run_phase.py --phase data_filtering_5steps
+
+# Phase C: export winners/rejected (stage8)
+python scripts/run_phase.py --phase export
+
+# Or run all phases in order
+python scripts/run_phase.py --phase all
+```
+
 ### Frame extraction for local subset
 ```bash
 python scripts/extract_subset_frames.py
